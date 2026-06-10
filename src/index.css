@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #16110D; /* Default rich warm ink/charcoal background */
+    color: #EDE8DC;           /* Soft cream text */
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* Elegant calligraphic styling & headings */
+.font-devanagari {
+  font-family: 'Yatra One', 'Cormorant Garamond', serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #16110D;
+}
+::-webkit-scrollbar-thumb {
+  background: #C45C1A;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #D4AF37;
+}
+
+/* CSS-based parchment paper texture for a premium look */
+.bg-parchment-texture {
+  background-color: #F5ECD7;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 100%),
+    linear-gradient(rgba(44, 24, 16, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 24, 16, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px, 24px 24px;
+  color: #2C1810;
+}
+
+.bg-dark-paper-texture {
+  background-color: #16110D;
+  background-image: 
+    radial-gradient(circle at 50% 10%, rgba(196, 92, 26, 0.08) 0%, transparent 80%),
+    linear-gradient(rgba(237, 232, 220, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(237, 232, 220, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 30px 30px, 30px 30px;
+  color: #EDE8DC;
+}
+
+/* Gold Shimmer effect for buttons and hover items */
+@keyframes gold-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-gold {
+  background: linear-gradient(90deg, #C45C1A 25%, #D4AF37 50%, #C45C1A 75%);
+  background-size: 200% 100%;
+  animation: gold-shimmer 6s infinite linear;
+}
+
+.shimmer-gold-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-gold-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.35), transparent);
+  transform: skewX(-25deg);
+  transition: 0.75s;
+}
+
+.shimmer-gold-button:hover::after {
+  left: 150%;
+}
+
+/* Diya Flame Glow Animation */
+@keyframes diya-flicker {
+  0%, 100% {
+    transform: scale(1) rotate(-2deg);
+    filter: drop-shadow(0 0 4px #D4AF37) drop-shadow(0 0 10px #C45C1A);
+  }
+  50% {
+    transform: scale(1.05) rotate(2deg);
+    filter: drop-shadow(0 0 6px #D4AF37) drop-shadow(0 0 15px #C45C1A);
+  }
+}
+
+.diya-flame {
+  animation: diya-flicker 1.8s infinite ease-in-out;
+  transform-origin: bottom center;
+}
+
+/* Wax Seal Mudra Stamp Animation */
+@keyframes wax-seal-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2) rotate(15deg);
+    filter: blur(4px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(0.9) rotate(-8deg);
+    filter: blur(0);
+  }
+  85% {
+    transform: scale(1.05) rotate(-3deg);
+  }
+  100% {
+    transform: scale(1) rotate(-5deg);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  }
+}
+
+.mudra-stamp {
+  animation: wax-seal-stamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform-origin: center;
+}
+
+/* Confluence River Flow Line */
+@keyframes flow-line {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.river-path {
+  stroke-dasharray: 500;
+  animation: flow-line 25s infinite linear;
+}
+
+/* Poetic Page Transitions and Fade-ins */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Decorative Mandala Spin */
+.mandala-slow-spin {
+  animation: spin 120s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom ink wash glow */
+.ink-wash-saffron {
+  background: radial-gradient(circle, rgba(196, 92, 26, 0.12) 0%, rgba(22, 17, 13, 0) 70%);
+}
+
+.ink-wash-gold {
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, rgba(22, 17, 13, 0) 70%);
+}
