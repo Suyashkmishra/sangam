@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Environment and credential files
+.env
+.env.*
+!.env.example
+*.env
+sangampass.env
+

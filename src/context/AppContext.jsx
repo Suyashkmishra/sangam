@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export const AppContext = createContext();
 
@@ -34,7 +35,7 @@ const initialSubmissions = [
     artistStageName: 'Meera',
     artistCity: 'Varanasi',
     type: 'music',
-    content: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // elegant audio track placeholder
+    content: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
     status: 'pending',
     assignedGuruId: 'guru-2',
     assignedGuruName: 'Pandit Hari Prasad',
@@ -147,16 +148,67 @@ const mockTalents = [
   }
 ];
 
+// Helper mappers between Supabase snake_case and React camelCase
+const mapProfileFromDb = (p) => ({
+  id: p.id,
+  name: p.name,
+  stageName: p.stage_name || p.name,
+  role: p.role,
+  title: p.title || '',
+  specialization: p.specialization || '',
+  experience: p.experience || '',
+  awards: p.awards || '',
+  city: p.city || '',
+  state: p.state || '',
+  dob: p.dob || '',
+  artForm: p.art_form || 'Poetry',
+  genre: p.genre || '',
+  bio: p.bio || '',
+  philosophy: p.philosophy || '',
+  languages: p.languages || [],
+  availability: p.availability || '',
+  avatar: p.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+  sampleWork: p.sample_work || '',
+  plan: p.plan || 'Free',
+  assignedGuruId: p.assigned_guru_id || 'guru-1'
+});
+
+const mapSubmissionFromDb = (s) => ({
+  id: s.id,
+  title: s.title,
+  artistId: s.artist_id,
+  artistName: s.artist_name,
+  artistStageName: s.artist_stage_name || s.artist_name,
+  artistCity: s.artist_city,
+  type: s.type,
+  content: s.content,
+  status: s.status,
+  assignedGuruId: s.assigned_guru_id,
+  assignedGuruName: s.assigned_guru_name,
+  date: s.date,
+  feedback: s.feedback || '',
+  rating: s.rating
+});
+
+const mapNotificationFromDb = (n) => ({
+  id: n.id,
+  text: n.text,
+  type: n.type || 'info',
+  date: n.date || 'Just now',
+  read: !!n.read
+});
+
 export const AppProvider = ({ children }) => {
   const [userRole, setUserRole] = useState(() => {
     return localStorage.getItem('sangam_role') || 'talent';
   });
 
+  const [gurus, setGurus] = useState(mockGurus);
+  const [talents, setTalents] = useState(mockTalents);
+
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = localStorage.getItem('sangam_user');
     if (savedUser) return JSON.parse(savedUser);
-    
-    // Default fallback based on initial role
     return userRole === 'talent' ? mockTalents[0] : mockGurus[0];
   });
 
@@ -189,6 +241,49 @@ export const AppProvider = ({ children }) => {
     }
   ]);
 
+  // Load live data from Supabase if tables exist
+  useEffect(() => {
+    async function fetchFromSupabase() {
+      try {
+        // Fetch profiles
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*');
+
+        if (!profilesError && profilesData && profilesData.length > 0) {
+          const dbGurus = profilesData.filter(p => p.role === 'guru').map(mapProfileFromDb);
+          const dbTalents = profilesData.filter(p => p.role === 'talent').map(mapProfileFromDb);
+          if (dbGurus.length > 0) setGurus(dbGurus);
+          if (dbTalents.length > 0) setTalents(dbTalents);
+        }
+
+        // Fetch submissions
+        const { data: subsData, error: subsError } = await supabase
+          .from('submissions')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!subsError && subsData && subsData.length > 0) {
+          setSubmissions(subsData.map(mapSubmissionFromDb));
+        }
+
+        // Fetch notifications
+        const { data: notifsData, error: notifsError } = await supabase
+          .from('notifications')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!notifsError && notifsData && notifsData.length > 0) {
+          setNotifications(notifsData.map(mapNotificationFromDb));
+        }
+      } catch (err) {
+        console.warn('Supabase initial fetch note (using local cache):', err);
+      }
+    }
+
+    fetchFromSupabase();
+  }, []);
+
   // Sync to local storage
   useEffect(() => {
     localStorage.setItem('sangam_role', userRole);
@@ -206,31 +301,30 @@ export const AppProvider = ({ children }) => {
   const switchRole = (newRole) => {
     setUserRole(newRole);
     if (newRole === 'talent') {
-      setCurrentUser(mockTalents[0]);
+      setCurrentUser(talents[0] || mockTalents[0]);
     } else {
-      setCurrentUser(mockGurus[0]);
+      setCurrentUser(gurus[0] || mockGurus[0]);
     }
   };
 
-  // Add Submission
-  const addSubmission = (newSub) => {
+  // Add Submission (Poetry or Music)
+  const addSubmission = async (newSub) => {
     const subObj = {
       id: `sub-${Date.now()}`,
       artistId: currentUser.id,
       artistName: currentUser.name,
       artistStageName: currentUser.stageName || currentUser.name,
-      artistCity: currentUser.city,
+      artistCity: currentUser.city || 'Lucknow',
       status: 'pending',
       date: new Date().toISOString().split('T')[0],
       assignedGuruId: currentUser.assignedGuruId || 'guru-1',
-      assignedGuruName: mockGurus.find(g => g.id === (currentUser.assignedGuruId || 'guru-1'))?.name || 'Ustad Rashid Khan',
+      assignedGuruName: gurus.find(g => g.id === (currentUser.assignedGuruId || 'guru-1'))?.name || 'Ustad Rashid Khan',
       feedback: '',
       ...newSub
     };
 
     setSubmissions(prev => [subObj, ...prev]);
 
-    // Add notification
     const newNotification = {
       id: `notif-${Date.now()}`,
       text: `Your new submission "${subObj.title}" has been uploaded and queued for review.`,
@@ -239,10 +333,40 @@ export const AppProvider = ({ children }) => {
       read: false
     };
     setNotifications(prev => [newNotification, ...prev]);
+
+    // Asynchronously sync to Supabase
+    try {
+      await supabase.from('submissions').insert({
+        id: subObj.id,
+        title: subObj.title,
+        artist_id: subObj.artistId,
+        artist_name: subObj.artistName,
+        artist_stage_name: subObj.artistStageName,
+        artist_city: subObj.artistCity,
+        type: subObj.type,
+        content: subObj.content,
+        status: subObj.status,
+        assigned_guru_id: subObj.assignedGuruId,
+        assigned_guru_name: subObj.assignedGuruName,
+        date: subObj.date,
+        feedback: subObj.feedback
+      });
+
+      await supabase.from('notifications').insert({
+        id: newNotification.id,
+        user_id: subObj.artistId,
+        text: newNotification.text,
+        type: newNotification.type,
+        date: newNotification.date,
+        read: newNotification.read
+      });
+    } catch (err) {
+      console.warn('Supabase sync note on submission:', err);
+    }
   };
 
   // Update Submission (Approve / Reject / Request Revision)
-  const updateSubmissionStatus = (subId, status, feedback) => {
+  const updateSubmissionStatus = async (subId, status, feedback) => {
     setSubmissions(prev => prev.map(sub => {
       if (sub.id === subId) {
         return { ...sub, status, feedback };
@@ -265,22 +389,42 @@ export const AppProvider = ({ children }) => {
         read: false
       };
       setNotifications(prev => [newNotif, ...prev]);
+
+      // Asynchronously sync to Supabase
+      try {
+        await supabase
+          .from('submissions')
+          .update({ status, feedback })
+          .eq('id', subId);
+
+        await supabase.from('notifications').insert({
+          id: newNotif.id,
+          user_id: targetSub.artistId,
+          text: newNotif.text,
+          type: newNotif.type,
+          date: newNotif.date,
+          read: newNotif.read
+        });
+      } catch (err) {
+        console.warn('Supabase sync note on review:', err);
+      }
     }
   };
 
   // Register user (talent or guru)
-  const registerUser = (profileData, role) => {
+  const registerUser = async (profileData, role) => {
     const newUser = {
       id: `${role}-${Date.now()}`,
       ...profileData,
+      role,
       avatar: profileData.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
     };
 
     if (role === 'talent') {
-      newUser.assignedGuruId = 'guru-1'; // default match
-      mockTalents.push(newUser);
+      newUser.assignedGuruId = 'guru-1';
+      setTalents(prev => [...prev, newUser]);
     } else {
-      mockGurus.push(newUser);
+      setGurus(prev => [...prev, newUser]);
     }
 
     setUserRole(role);
@@ -294,16 +438,53 @@ export const AppProvider = ({ children }) => {
       read: false
     };
     setNotifications(prev => [welcomeNotif, ...prev]);
+
+    // Asynchronously sync to Supabase
+    try {
+      await supabase.from('profiles').insert({
+        id: newUser.id,
+        name: newUser.name,
+        stage_name: newUser.stageName || newUser.name,
+        role: newUser.role,
+        title: newUser.title || null,
+        specialization: newUser.specialization || null,
+        experience: newUser.experience || null,
+        awards: newUser.awards || null,
+        city: newUser.city || null,
+        state: newUser.state || null,
+        dob: newUser.dob || null,
+        art_form: newUser.artForm || null,
+        genre: newUser.genre || null,
+        bio: newUser.bio || null,
+        philosophy: newUser.philosophy || null,
+        languages: newUser.languages || [],
+        availability: newUser.availability || null,
+        avatar: newUser.avatar,
+        sample_work: newUser.sampleWork || null,
+        plan: newUser.plan || (role === 'talent' ? 'Rising Star' : 'Verified Guru'),
+        assigned_guru_id: newUser.assignedGuruId || null
+      });
+
+      await supabase.from('notifications').insert({
+        id: welcomeNotif.id,
+        user_id: newUser.id,
+        text: welcomeNotif.text,
+        type: welcomeNotif.type,
+        date: welcomeNotif.date,
+        read: welcomeNotif.read
+      });
+    } catch (err) {
+      console.warn('Supabase sync note on register:', err);
+    }
   };
 
   // Update Plan
-  const updatePlan = (role, newPlan) => {
+  const updatePlan = async (role, newPlan) => {
     setCurrentUser(prev => ({
       ...prev,
       plan: newPlan
     }));
     
-    // Add plan upgrade notification
     const planNotif = {
       id: `notif-${Date.now()}`,
       text: `Your plan has been updated to "${newPlan}". Thank you for supporting the arts!`,
@@ -312,6 +493,25 @@ export const AppProvider = ({ children }) => {
       read: false
     };
     setNotifications(prev => [planNotif, ...prev]);
+
+    // Asynchronously sync to Supabase
+    try {
+      await supabase
+        .from('profiles')
+        .update({ plan: newPlan })
+        .eq('id', currentUser.id);
+
+      await supabase.from('notifications').insert({
+        id: planNotif.id,
+        user_id: currentUser.id,
+        text: planNotif.text,
+        type: planNotif.type,
+        date: planNotif.date,
+        read: planNotif.read
+      });
+    } catch (err) {
+      console.warn('Supabase sync note on plan update:', err);
+    }
   };
 
   // Clear Notifications
@@ -324,8 +524,8 @@ export const AppProvider = ({ children }) => {
       userRole,
       currentUser,
       submissions,
-      gurus: mockGurus,
-      talents: mockTalents,
+      gurus,
+      talents,
       notifications,
       switchRole,
       addSubmission,
